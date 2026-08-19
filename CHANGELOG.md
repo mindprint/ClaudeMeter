@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Divide weekly usage progress bars into seven day segments, with a marker showing how far through the week you are, toggleable in Settings
+- Show the exact reset time alongside the relative one in usage cards, prefixed with the weekday when it falls on another day
 
 ## [1.4.0] - 2026-05-19
 

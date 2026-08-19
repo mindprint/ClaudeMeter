@@ -85,4 +85,73 @@ final class UsageLimitRiskTests: XCTestCase {
             "now"
         )
     }
+
+    // MARK: - Contextual reset time
+
+    /// Fixed calendar so the tests don't depend on the machine's region
+    private var testCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/London")!
+        return calendar
+    }
+
+    private let testLocale = Locale(identifier: "en_US")
+
+    private func makeDate(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minute: Int) -> Date {
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        components.hour = hour
+        components.minute = minute
+        return testCalendar.date(from: components)!
+    }
+
+    func test_resetTimeContextual_whenResetIsToday_omitsWeekday() {
+        // Wednesday 14:00, resetting Wednesday 17:00
+        let now = makeDate(2026, 8, 19, 14, 0)
+        let usageLimit = UsageLimit(utilization: 17, resetAt: makeDate(2026, 8, 19, 17, 0))
+
+        let formatted = usageLimit.resetTimeContextual(now: now, calendar: testCalendar, locale: testLocale)
+
+        XCTAssertTrue(formatted.contains("5:00"), formatted)
+        XCTAssertFalse(formatted.contains("Wednesday"), formatted)
+    }
+
+    func test_resetTimeContextual_whenResetIsAnotherDay_prefixesWeekday() {
+        // Wednesday 14:00, weekly reset the following Sunday 09:00
+        let now = makeDate(2026, 8, 19, 14, 0)
+        let usageLimit = UsageLimit(utilization: 27, resetAt: makeDate(2026, 8, 23, 9, 0))
+
+        let formatted = usageLimit.resetTimeContextual(now: now, calendar: testCalendar, locale: testLocale)
+
+        XCTAssertTrue(formatted.hasPrefix("Sunday"), formatted)
+        XCTAssertTrue(formatted.contains("9:00"), formatted)
+    }
+
+    func test_resetTimeContextual_whenSessionCrossesMidnight_prefixesNextWeekday() {
+        // A 5-hour session started late Wednesday resets early Thursday
+        let now = makeDate(2026, 8, 19, 23, 30)
+        let usageLimit = UsageLimit(utilization: 40, resetAt: makeDate(2026, 8, 20, 2, 0))
+
+        let formatted = usageLimit.resetTimeContextual(now: now, calendar: testCalendar, locale: testLocale)
+
+        XCTAssertTrue(formatted.hasPrefix("Thursday"), formatted)
+        XCTAssertTrue(formatted.contains("2:00"), formatted)
+    }
+
+    func test_resetTimeContextual_respectsLocaleClockConvention() {
+        let now = makeDate(2026, 8, 19, 14, 0)
+        let usageLimit = UsageLimit(utilization: 27, resetAt: makeDate(2026, 8, 23, 21, 0))
+
+        let british = usageLimit.resetTimeContextual(
+            now: now, calendar: testCalendar, locale: Locale(identifier: "en_GB")
+        )
+        let american = usageLimit.resetTimeContextual(
+            now: now, calendar: testCalendar, locale: testLocale
+        )
+
+        XCTAssertTrue(british.contains("21:00"), british)
+        XCTAssertTrue(american.contains("9:00"), american)
+    }
 }

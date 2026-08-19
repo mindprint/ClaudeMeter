@@ -79,6 +79,30 @@ extension UsageLimit {
         count == 1 ? singular : "\(singular)s"
     }
 
+    /// Exact reset time for inline display alongside the relative description.
+    ///
+    /// Shows the time alone when the reset falls on today's date, and prefixes the weekday
+    /// otherwise, so a session rolling past midnight reads as another day rather than today.
+    /// - Parameters:
+    ///   - now: Current time, injectable for testing
+    ///   - calendar: Calendar used to compare dates and format the result
+    ///   - locale: Locale deciding 12- or 24-hour presentation
+    func resetTimeContextual(
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        locale: Locale = .current
+    ) -> String {
+        let isToday = calendar.isDate(resetAt, inSameDayAs: now)
+
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate(isToday ? "jmm" : "EEEEjmm")
+
+        return formatter.string(from: resetAt)
+    }
+
     /// Exact reset time formatted in user's timezone for tooltip display
     var resetTimeFormatted: String {
         let formatter = DateFormatter()
