@@ -100,7 +100,8 @@ struct UsagePopoverView: View {
                             title: "Weekly Usage",
                             usageLimit: usageData.weeklyUsage,
                             icon: "calendar",
-                            windowDuration: Constants.Pacing.weeklyWindow
+                            windowDuration: Constants.Pacing.weeklyWindow,
+                            segmentCount: weeklySegmentCount
                         )
 
                         // Sonnet usage card (conditional rendering)
@@ -109,7 +110,8 @@ struct UsagePopoverView: View {
                                 title: "Weekly Sonnet",
                                 usageLimit: sonnetUsage,
                                 icon: "sparkles",
-                                windowDuration: Constants.Pacing.weeklyWindow
+                                windowDuration: Constants.Pacing.weeklyWindow,
+                                segmentCount: weeklySegmentCount
                             )
                         }
                     }
@@ -153,6 +155,11 @@ struct UsagePopoverView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Usage Dashboard")
+    }
+
+    /// Day segments for weekly bars, or `nil` when the user has turned the markers off
+    private var weeklySegmentCount: Int? {
+        appModel.settings.areWeeklyDayMarkersShown ? Constants.Pacing.weeklyDays : nil
     }
 
     private func openSettingsFront() {

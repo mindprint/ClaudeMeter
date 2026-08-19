@@ -98,19 +98,29 @@ extension UsageLimit {
         resetAt < Date() && utilization > 0
     }
 
-    /// Returns true if current usage rate will likely exceed limit before reset
-    /// - Parameter windowDuration: Duration of the usage window (e.g., 5 hours for session)
-    func isAtRisk(windowDuration: TimeInterval) -> Bool {
-        let now = Date()
-        guard resetAt > now else { return false }
+    /// Fraction of the usage window that has already elapsed (0-1)
+    ///
+    /// Returns `nil` when the window has not started yet or the reset time has passed,
+    /// so callers can distinguish "no meaningful position" from "at the very start".
+    /// - Parameters:
+    ///   - windowDuration: Duration of the usage window (e.g., 7 days for weekly)
+    ///   - now: Current time, injectable for testing
+    func elapsedFraction(windowDuration: TimeInterval, now: Date = Date()) -> Double? {
+        guard windowDuration > 0, resetAt > now else { return nil }
 
         let windowStart = resetAt.addingTimeInterval(-windowDuration)
         let elapsed = now.timeIntervalSince(windowStart)
-        guard elapsed > 0 else { return false }
+        guard elapsed > 0 else { return nil }
 
-        let timeElapsedPct = elapsed / windowDuration
+        return min(elapsed / windowDuration, 1)
+    }
+
+    /// Returns true if current usage rate will likely exceed limit before reset
+    /// - Parameter windowDuration: Duration of the usage window (e.g., 5 hours for session)
+    func isAtRisk(windowDuration: TimeInterval) -> Bool {
+        guard let timeElapsedPct = elapsedFraction(windowDuration: windowDuration) else { return false }
+
         let usagePct = min(utilization, 100) / 100
-        guard timeElapsedPct > 0 else { return false }
 
         return (usagePct / timeElapsedPct) > Constants.Pacing.riskThreshold
     }

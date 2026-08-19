@@ -51,6 +51,29 @@ final class SettingsRepositoryTests: XCTestCase {
         XCTAssertTrue(settings.isColoredIcon)
     }
 
+    func test_settingsDecodingWithoutWeeklyDayMarkers_usesDefault() throws {
+        let data = """
+        {
+          "refresh_interval": 300,
+          "notifications_enabled": false,
+          "notification_thresholds": {
+            "warning_threshold": 70,
+            "critical_threshold": 90,
+            "notify_on_reset": false
+          },
+          "is_first_launch": false,
+          "cached_organization_id": null,
+          "show_sonnet_usage": true,
+          "icon_style": "segments",
+          "is_colored_icon": false
+        }
+        """.data(using: .utf8)!
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertTrue(settings.areWeeklyDayMarkersShown)
+    }
+
     func test_notificationStatePersistsAcrossLaunches() async throws {
         let suiteName = "SettingsRepositoryTests.\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName)

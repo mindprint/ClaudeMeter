@@ -33,6 +33,9 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// Whether menu bar icons are shown in color instead of monochrome.
     var isColoredIcon: Bool
 
+    /// Whether weekly usage bars are divided into day segments with an elapsed-time marker
+    var areWeeklyDayMarkersShown: Bool
+
     static let `default` = AppSettings(
         refreshInterval: 60,
         hasNotificationsEnabled: true,
@@ -41,7 +44,8 @@ struct AppSettings: Codable, Equatable, Sendable {
         cachedOrganizationId: nil,
         isSonnetUsageShown: false,
         iconStyle: .battery,
-        isColoredIcon: true
+        isColoredIcon: true,
+        areWeeklyDayMarkersShown: true
     )
 
     enum CodingKeys: String, CodingKey {
@@ -53,6 +57,7 @@ struct AppSettings: Codable, Equatable, Sendable {
         case isSonnetUsageShown = "show_sonnet_usage"
         case iconStyle = "icon_style"
         case isColoredIcon = "is_colored_icon"
+        case areWeeklyDayMarkersShown = "show_weekly_day_markers"
     }
 }
 
@@ -69,6 +74,7 @@ extension AppSettings {
         isSonnetUsageShown = try container.decodeIfPresent(Bool.self, forKey: .isSonnetUsageShown) ?? defaults.isSonnetUsageShown
         iconStyle = try container.decodeIfPresent(IconStyle.self, forKey: .iconStyle) ?? defaults.iconStyle
         isColoredIcon = try container.decodeIfPresent(Bool.self, forKey: .isColoredIcon) ?? defaults.isColoredIcon
+        areWeeklyDayMarkersShown = try container.decodeIfPresent(Bool.self, forKey: .areWeeklyDayMarkersShown) ?? defaults.areWeeklyDayMarkersShown
     }
 }
 

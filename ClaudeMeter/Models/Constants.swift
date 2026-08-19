@@ -50,6 +50,9 @@ enum Constants {
         /// 7-day weekly window duration
         static let weeklyWindow: TimeInterval = 7 * 24 * 60 * 60
 
+        /// Number of days in the weekly window, used to divide weekly progress bars
+        static let weeklyDays = 7
+
         /// Ratio threshold for "at risk" status (using faster than sustainable)
         static let riskThreshold: Double = 1.2
     }

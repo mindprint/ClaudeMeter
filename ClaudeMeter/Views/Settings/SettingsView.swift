@@ -62,6 +62,7 @@ struct SettingsView: View {
                 sessionKeySection
                 refreshIntervalSection
                 sonnetUsageSection
+                weeklyDayMarkersSection
                 iconStyleSection
                 launchAtLoginSection
             }
@@ -225,6 +226,28 @@ struct SettingsView: View {
             Spacer()
 
             Toggle("", isOn: $appModel.settings.isSonnetUsageShown)
+                .labelsHidden()
+        }
+        .padding()
+        .background(.quaternary.opacity(0.3))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Weekly Day Markers Section
+
+    private var weeklyDayMarkersSection: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Show Weekly Day Markers")
+                    .font(.subheadline)
+                Text("Divide weekly usage bars into days and mark how far through the week you are")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Toggle("", isOn: $appModel.settings.areWeeklyDayMarkersShown)
                 .labelsHidden()
         }
         .padding()

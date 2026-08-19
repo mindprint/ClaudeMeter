@@ -14,6 +14,16 @@ struct UsageCardView: View {
     let icon: String
     let windowDuration: TimeInterval?
 
+    /// Number of segments to divide the progress bar into (e.g. one per day of a
+    /// weekly limit), or `nil` for a plain bar
+    var segmentCount: Int?
+
+    /// How far through the usage window we currently are, shown as a marker on the bar
+    private var elapsedFraction: Double? {
+        guard segmentCount != nil, let windowDuration else { return nil }
+        return usageLimit.elapsedFraction(windowDuration: windowDuration)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header with icon and title
@@ -49,19 +59,12 @@ struct UsageCardView: View {
                 .foregroundColor(usageLimit.status.color)
 
             // Progress bar
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // Background
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-
-                    // Progress
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(usageLimit.status.color)
-                        .frame(width: geometry.size.width * min(usageLimit.percentage / 100, 1.0))
-                }
-            }
-            .frame(height: 8)
+            UsageProgressBarView(
+                percentage: usageLimit.percentage,
+                color: usageLimit.status.color,
+                segmentCount: segmentCount,
+                elapsedFraction: elapsedFraction
+            )
 
             // Reset time and pacing indicator
             HStack(spacing: 4) {
@@ -91,7 +94,19 @@ struct UsageCardView: View {
         .cornerRadius(12)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(Int(usageLimit.percentage))% used, \(usageLimit.status.accessibilityDescription)")
-        .accessibilityValue("Resets \(usageLimit.resetDescription)")
+        .accessibilityValue(accessibilityValue)
+    }
+
+    /// Spoken equivalent of the bar's visual pacing cue, so the marker isn't sighted-only
+    private var accessibilityValue: String {
+        var value = "Resets \(usageLimit.resetDescription)"
+
+        if let segmentCount, let elapsedFraction {
+            let currentSegment = min(segmentCount, Int(elapsedFraction * Double(segmentCount)) + 1)
+            value += ", day \(currentSegment) of \(segmentCount)"
+        }
+
+        return value
     }
 }
 
@@ -116,7 +131,8 @@ struct UsageCardView: View {
                 resetAt: Date().addingTimeInterval(86400 * 3)
             ),
             icon: "calendar",
-            windowDuration: Constants.Pacing.weeklyWindow
+            windowDuration: Constants.Pacing.weeklyWindow,
+            segmentCount: Constants.Pacing.weeklyDays
         )
     }
     .padding()
