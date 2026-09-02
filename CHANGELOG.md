@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Divide weekly usage progress bars into seven day segments, with a marker showing how far through the week you are, toggleable in Settings
+
+### Changed
+
+- Read usage from the API's `limits` array, falling back to the previous top-level fields when it is absent
+- Track the model the plan meters separately, currently Fable, in place of the retired Sonnet limit. The API stopped populating `seven_day_sonnet`, so that meter no longer appeared
+- Rename the setting `show_sonnet_usage` to `show_scoped_usage`; existing preferences carry over automatically
+- Rename `sonnet_usage` to `scoped_usage` in the `~/.claudemeter/usage.json` export. **Breaking** for anything reading that key
 - Show the exact reset time alongside the relative one in usage cards, prefixed with the weekday when it falls on another day
 
 ## [1.4.0] - 2026-05-19

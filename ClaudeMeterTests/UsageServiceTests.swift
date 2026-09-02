@@ -68,8 +68,8 @@ final class UsageServiceTests: XCTestCase {
             weeklyUtilization: TestConstants.weeklyPercentage,
             sessionResetAt: TestConstants.sessionResetDateString,
             weeklyResetAt: TestConstants.weeklyResetDateString,
-            sonnetUtilization: nil,
-            sonnetResetAt: nil
+            scopedUtilization: nil,
+            scopedResetAt: nil
         )
         let expectedSessionPercentage = TestConstants.sessionPercentage
         let expectedWeeklyPercentage = TestConstants.weeklyPercentage
@@ -111,8 +111,8 @@ final class UsageServiceTests: XCTestCase {
             weeklyUtilization: TestConstants.weeklyPercentage,
             sessionResetAt: TestConstants.sessionResetDateString,
             weeklyResetAt: TestConstants.weeklyResetDateString,
-            sonnetUtilization: nil,
-            sonnetResetAt: nil
+            scopedUtilization: nil,
+            scopedResetAt: nil
         )
 
         let networkService = NetworkServiceStub(responseData: responseData)
@@ -148,8 +148,8 @@ final class UsageServiceTests: XCTestCase {
             weeklyUtilization: TestConstants.weeklyPercentage,
             sessionResetAt: TestConstants.sessionResetDateString,
             weeklyResetAt: TestConstants.weeklyResetDateString,
-            sonnetUtilization: nil,
-            sonnetResetAt: nil
+            scopedUtilization: nil,
+            scopedResetAt: nil
         )
 
         let networkService = NetworkServiceStub(responseData: responseData)
@@ -187,8 +187,8 @@ final class UsageServiceTests: XCTestCase {
             weeklyUtilization: TestConstants.weeklyPercentage,
             sessionResetAt: nil,
             weeklyResetAt: TestConstants.weeklyResetDateString,
-            sonnetUtilization: nil,
-            sonnetResetAt: nil
+            scopedUtilization: nil,
+            scopedResetAt: nil
         )
 
         let networkService = NetworkServiceStub(responseData: responseData)
@@ -228,8 +228,8 @@ final class UsageServiceTests: XCTestCase {
             weeklyUtilization: TestConstants.weeklyPercentage,
             sessionResetAt: "not-a-date",
             weeklyResetAt: TestConstants.weeklyResetDateString,
-            sonnetUtilization: nil,
-            sonnetResetAt: nil
+            scopedUtilization: nil,
+            scopedResetAt: nil
         )
 
         let networkService = NetworkServiceStub(responseData: responseData)
@@ -266,14 +266,14 @@ final class UsageServiceTests: XCTestCase {
         }
     }
 
-    func test_usageFetch_withSonnetUsage_showsSonnetUsage() async throws {
+    func test_usageFetch_withScopedUsage_showsScopedUsage() async throws {
         let responseData = try makeUsageResponseData(
             sessionUtilization: TestConstants.sessionPercentage,
             weeklyUtilization: TestConstants.weeklyPercentage,
             sessionResetAt: TestConstants.sessionResetDateString,
             weeklyResetAt: TestConstants.weeklyResetDateString,
-            sonnetUtilization: TestConstants.sonnetPercentage,
-            sonnetResetAt: TestConstants.sonnetResetDateString
+            scopedUtilization: TestConstants.scopedPercentage,
+            scopedResetAt: TestConstants.scopedResetDateString
         )
 
         let networkService = NetworkServiceStub(responseData: responseData)
@@ -299,11 +299,11 @@ final class UsageServiceTests: XCTestCase {
 
         let usageData = try await service.fetchUsage(forceRefresh: true)
 
-        XCTAssertEqual(usageData.sonnetUsage?.utilization, TestConstants.sonnetPercentage)
-        if let resetAt = usageData.sonnetUsage?.resetAt {
-            assertDate(resetAt, equalsIso8601String: TestConstants.sonnetResetDateString)
+        XCTAssertEqual(usageData.scopedUsage?.utilization, TestConstants.scopedPercentage)
+        if let resetAt = usageData.scopedUsage?.resetAt {
+            assertDate(resetAt, equalsIso8601String: TestConstants.scopedResetDateString)
         } else {
-            XCTFail("Expected sonnet usage reset date")
+            XCTFail("Expected scoped usage reset date")
         }
     }
 }
@@ -315,13 +315,28 @@ private func makeUsageResponseData(
     weeklyUtilization: Double,
     sessionResetAt: String?,
     weeklyResetAt: String?,
-    sonnetUtilization: Double?,
-    sonnetResetAt: String?
+    scopedUtilization: Double?,
+    scopedResetAt: String?
 ) throws -> Data {
-    let sonnetUsage = sonnetUtilization.map {
-        UsageLimitResponse(
-            utilization: $0,
-            resetsAt: sonnetResetAt
+    var limits = [
+        LimitEntryResponse(
+            kind: LimitEntryResponse.sessionKind,
+            percent: sessionUtilization,
+            resetsAt: sessionResetAt
+        ),
+        LimitEntryResponse(
+            kind: LimitEntryResponse.weeklyAllKind,
+            percent: weeklyUtilization,
+            resetsAt: weeklyResetAt
+        ),
+    ]
+    if let scopedUtilization {
+        limits.append(
+            LimitEntryResponse(
+                kind: LimitEntryResponse.weeklyScopedKind,
+                percent: scopedUtilization,
+                resetsAt: scopedResetAt
+            )
         )
     }
 
@@ -334,7 +349,7 @@ private func makeUsageResponseData(
             utilization: weeklyUtilization,
             resetsAt: weeklyResetAt
         ),
-        sevenDaySonnet: sonnetUsage
+        limits: limits
     )
 
     return try JSONEncoder().encode(response)
@@ -348,7 +363,7 @@ private func makeUsageData(percentage: Double) -> UsageData {
     return UsageData(
         sessionUsage: sessionUsage,
         weeklyUsage: weeklyUsage,
-        sonnetUsage: nil,
+        scopedUsage: nil,
         lastUpdated: Date()
     )
 }

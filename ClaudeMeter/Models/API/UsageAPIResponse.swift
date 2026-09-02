@@ -11,13 +11,35 @@ import Foundation
 struct UsageAPIResponse: Codable {
     let fiveHour: UsageLimitResponse
     let sevenDay: UsageLimitResponse
-    let sevenDaySonnet: UsageLimitResponse?
+    let limits: [LimitEntryResponse]?
 
     enum CodingKeys: String, CodingKey {
         case fiveHour = "five_hour"
         case sevenDay = "seven_day"
-        case sevenDaySonnet = "seven_day_sonnet"
+        case limits
     }
+}
+
+/// An entry in the `limits` array, which supersedes the per-model top-level fields.
+///
+/// `kind` is deliberately model-agnostic: the scoped weekly limit tracks whichever
+/// model the plan currently meters separately, so nothing here names a model.
+struct LimitEntryResponse: Codable {
+    let kind: String
+    let percent: Double
+    let resetsAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case kind
+        case percent
+        case resetsAt = "resets_at"
+    }
+}
+
+extension LimitEntryResponse {
+    static let sessionKind = "session"
+    static let weeklyAllKind = "weekly_all"
+    static let weeklyScopedKind = "weekly_scoped"
 }
 
 /// Individual usage limit response from API
@@ -52,43 +74,69 @@ extension UsageAPIResponse {
         let iso8601Formatter = ISO8601DateFormatter()
         iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
-        let sessionResetDate = try parseResetDate(
-            from: fiveHour.resetsAt,
-            field: "fiveHour.resetsAt",
-            formatter: iso8601Formatter,
-            fallback: Constants.Pacing.sessionWindow
-        )
-        let weeklyResetDate = try parseResetDate(
-            from: sevenDay.resetsAt,
-            field: "sevenDay.resetsAt",
-            formatter: iso8601Formatter,
-            fallback: Constants.Pacing.weeklyWindow
+        func limit(ofKind kind: String) -> LimitEntryResponse? {
+            limits?.first { $0.kind == kind }
+        }
+
+        // `limits` supersedes the top-level fields, so prefer it and fall back to them
+        // for responses that predate it.
+        let session = try limit(ofKind: LimitEntryResponse.sessionKind).map { entry in
+            UsageLimit(
+                utilization: entry.percent,
+                resetAt: try parseResetDate(
+                    from: entry.resetsAt,
+                    field: "limits.session.resetsAt",
+                    formatter: iso8601Formatter,
+                    fallback: Constants.Pacing.sessionWindow
+                )
+            )
+        } ?? UsageLimit(
+            utilization: fiveHour.utilization,
+            resetAt: try parseResetDate(
+                from: fiveHour.resetsAt,
+                field: "fiveHour.resetsAt",
+                formatter: iso8601Formatter,
+                fallback: Constants.Pacing.sessionWindow
+            )
         )
 
-        // Handle optional sonnet usage
-        let sonnetLimit: UsageLimit? = try sevenDaySonnet.flatMap { sonnet -> UsageLimit? in
-            let sonnetResetDate = try parseResetDate(
-                from: sonnet.resetsAt,
-                field: "sevenDaySonnet.resetsAt",
+        let weekly = try limit(ofKind: LimitEntryResponse.weeklyAllKind).map { entry in
+            UsageLimit(
+                utilization: entry.percent,
+                resetAt: try parseResetDate(
+                    from: entry.resetsAt,
+                    field: "limits.weeklyAll.resetsAt",
+                    formatter: iso8601Formatter,
+                    fallback: Constants.Pacing.weeklyWindow
+                )
+            )
+        } ?? UsageLimit(
+            utilization: sevenDay.utilization,
+            resetAt: try parseResetDate(
+                from: sevenDay.resetsAt,
+                field: "sevenDay.resetsAt",
                 formatter: iso8601Formatter,
                 fallback: Constants.Pacing.weeklyWindow
             )
-            return UsageLimit(
-                utilization: sonnet.utilization,
-                resetAt: sonnetResetDate
+        )
+
+        // Absent whenever the plan meters no model separately.
+        let scoped = try limit(ofKind: LimitEntryResponse.weeklyScopedKind).map { entry in
+            UsageLimit(
+                utilization: entry.percent,
+                resetAt: try parseResetDate(
+                    from: entry.resetsAt,
+                    field: "limits.weeklyScoped.resetsAt",
+                    formatter: iso8601Formatter,
+                    fallback: Constants.Pacing.weeklyWindow
+                )
             )
         }
 
         return UsageData(
-            sessionUsage: UsageLimit(
-                utilization: fiveHour.utilization,
-                resetAt: sessionResetDate
-            ),
-            weeklyUsage: UsageLimit(
-                utilization: sevenDay.utilization,
-                resetAt: weeklyResetDate
-            ),
-            sonnetUsage: sonnetLimit,
+            sessionUsage: session,
+            weeklyUsage: weekly,
+            scopedUsage: scoped,
             lastUpdated: Date()
         )
     }

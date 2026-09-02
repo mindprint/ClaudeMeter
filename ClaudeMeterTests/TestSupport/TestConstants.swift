@@ -21,6 +21,6 @@ enum TestConstants {
     static let organizationUUIDString = "E4C9B3E0-7C4B-4C4B-A1E0-111111111111"
     static let sessionResetDateString = "2025-01-01T00:00:00.000Z"
     static let weeklyResetDateString = "2025-01-08T00:00:00.000Z"
-    static let sonnetPercentage: Double = 5
-    static let sonnetResetDateString = "2025-01-04T00:00:00.000Z"
+    static let scopedPercentage: Double = 5
+    static let scopedResetDateString = "2025-01-04T00:00:00.000Z"
 }

@@ -46,18 +46,18 @@ enum DemoDataFactory {
                 isLoading: false
             )
 
-        case .withSonnet:
+        case .withScopedModel:
             appModel.applyDemoState(
                 usageData: makeUsageData(
                     sessionPercentage: 65,
                     weeklyPercentage: 40,
-                    sonnetPercentage: 25
+                    scopedPercentage: 25
                 ),
                 isSetupComplete: true,
                 errorMessage: nil,
                 isLoading: false
             )
-            appModel.settings.isSonnetUsageShown = true
+            appModel.settings.isScopedUsageShown = true
 
         case .loading:
             appModel.applyDemoState(
@@ -89,7 +89,7 @@ enum DemoDataFactory {
     private static func makeUsageData(
         sessionPercentage: Double,
         weeklyPercentage: Double,
-        sonnetPercentage: Double? = nil
+        scopedPercentage: Double? = nil
     ) -> UsageData {
         let sessionResetAt = Date().addingTimeInterval(3 * 3600) // 3 hours from now
         let weeklyResetAt = Date().addingTimeInterval(4 * 24 * 3600) // 4 days from now
@@ -97,17 +97,17 @@ enum DemoDataFactory {
         let sessionUsage = UsageLimit(utilization: sessionPercentage, resetAt: sessionResetAt)
         let weeklyUsage = UsageLimit(utilization: weeklyPercentage, resetAt: weeklyResetAt)
 
-        let sonnetUsage: UsageLimit?
-        if let sonnetPercentage {
-            sonnetUsage = UsageLimit(utilization: sonnetPercentage, resetAt: weeklyResetAt)
+        let scopedUsage: UsageLimit?
+        if let scopedPercentage {
+            scopedUsage = UsageLimit(utilization: scopedPercentage, resetAt: weeklyResetAt)
         } else {
-            sonnetUsage = nil
+            scopedUsage = nil
         }
 
         return UsageData(
             sessionUsage: sessionUsage,
             weeklyUsage: weeklyUsage,
-            sonnetUsage: sonnetUsage,
+            scopedUsage: scopedUsage,
             lastUpdated: Date()
         )
     }

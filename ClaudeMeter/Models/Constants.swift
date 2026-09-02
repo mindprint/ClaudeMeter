@@ -57,6 +57,14 @@ enum Constants {
         static let riskThreshold: Double = 1.2
     }
 
+    /// The model that plans currently meter separately, alongside the all-models limit.
+    ///
+    /// The API reports this limit as `weekly_scoped` and never names the model, so this
+    /// is the only place the name appears. Change it here when the scoped model changes.
+    enum ScopedModel {
+        static let displayName = "Fable"
+    }
+
     /// Usage threshold configuration
     enum Thresholds {
         /// Visual status boundaries (fixed, for icon colors)

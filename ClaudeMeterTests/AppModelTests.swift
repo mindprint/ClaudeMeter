@@ -412,7 +412,7 @@ private func makeUsageData(percentage: Double) -> UsageData {
     return UsageData(
         sessionUsage: sessionUsage,
         weeklyUsage: weeklyUsage,
-        sonnetUsage: nil,
+        scopedUsage: nil,
         lastUpdated: Date()
     )
 }

@@ -15,8 +15,10 @@ struct UsageData: Codable, Equatable, Sendable {
     /// 7-day weekly usage across all models
     let weeklyUsage: UsageLimit
 
-    /// 7-day Sonnet-specific usage (nil if not used)
-    let sonnetUsage: UsageLimit?
+    /// 7-day usage for the model the plan meters separately, nil when it has none.
+    /// The API names this limit by scope rather than by model, so the model it tracks
+    /// can change without the shape changing; only the display name in the UI follows it.
+    let scopedUsage: UsageLimit?
 
     /// Timestamp of when this data was fetched
     let lastUpdated: Date
@@ -24,7 +26,7 @@ struct UsageData: Codable, Equatable, Sendable {
     enum CodingKeys: String, CodingKey {
         case sessionUsage = "session_usage"
         case weeklyUsage = "weekly_usage"
-        case sonnetUsage = "sonnet_usage"
+        case scopedUsage = "scoped_usage"
         case lastUpdated = "last_updated"
     }
 }

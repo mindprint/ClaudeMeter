@@ -90,4 +90,37 @@ final class SettingsRepositoryTests: XCTestCase {
 
         XCTAssertEqual(loaded, state)
     }
+
+    func test_settingsSavedWithRetiredSonnetKey_keepTheToggleOn() throws {
+        let data = """
+        {
+          "show_sonnet_usage": true
+        }
+        """.data(using: .utf8)!
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertTrue(settings.isScopedUsageShown)
+    }
+
+    func test_settingsWithBothKeys_preferTheCurrentOne() throws {
+        let data = """
+        {
+          "show_sonnet_usage": true,
+          "show_scoped_usage": false
+        }
+        """.data(using: .utf8)!
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertFalse(settings.isScopedUsageShown)
+    }
+
+    func test_settingsWithNeitherKey_useTheDefault() throws {
+        let data = "{}".data(using: .utf8)!
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(settings.isScopedUsageShown, AppSettings.default.isScopedUsageShown)
+    }
 }

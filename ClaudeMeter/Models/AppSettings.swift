@@ -24,8 +24,8 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// Last known organization ID (cached)
     var cachedOrganizationId: UUID?
 
-    /// Whether to show Sonnet usage in the popover
-    var isSonnetUsageShown: Bool
+    /// Whether to show the separately-metered model's usage in the popover
+    var isScopedUsageShown: Bool
 
     /// Menu bar icon display style
     var iconStyle: IconStyle
@@ -42,7 +42,7 @@ struct AppSettings: Codable, Equatable, Sendable {
         notificationThresholds: .default,
         isFirstLaunch: true,
         cachedOrganizationId: nil,
-        isSonnetUsageShown: false,
+        isScopedUsageShown: false,
         iconStyle: .battery,
         isColoredIcon: true,
         areWeeklyDayMarkersShown: true
@@ -54,7 +54,7 @@ struct AppSettings: Codable, Equatable, Sendable {
         case notificationThresholds = "notification_thresholds"
         case isFirstLaunch = "is_first_launch"
         case cachedOrganizationId = "cached_organization_id"
-        case isSonnetUsageShown = "show_sonnet_usage"
+        case isScopedUsageShown = "show_scoped_usage"
         case iconStyle = "icon_style"
         case isColoredIcon = "is_colored_icon"
         case areWeeklyDayMarkersShown = "show_weekly_day_markers"
@@ -62,8 +62,14 @@ struct AppSettings: Codable, Equatable, Sendable {
 }
 
 extension AppSettings {
+    /// Keys retired in earlier versions, still present in saved settings on disk.
+    private enum LegacyCodingKeys: String, CodingKey {
+        case sonnetUsageShown = "show_sonnet_usage"
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        let legacyContainer = try decoder.container(keyedBy: LegacyCodingKeys.self)
         let defaults = AppSettings.default
 
         refreshInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .refreshInterval) ?? defaults.refreshInterval
@@ -71,7 +77,11 @@ extension AppSettings {
         notificationThresholds = try container.decodeIfPresent(NotificationThresholds.self, forKey: .notificationThresholds) ?? defaults.notificationThresholds
         isFirstLaunch = try container.decodeIfPresent(Bool.self, forKey: .isFirstLaunch) ?? defaults.isFirstLaunch
         cachedOrganizationId = try container.decodeIfPresent(UUID.self, forKey: .cachedOrganizationId)
-        isSonnetUsageShown = try container.decodeIfPresent(Bool.self, forKey: .isSonnetUsageShown) ?? defaults.isSonnetUsageShown
+        // Settings saved before the key was renamed still carry show_sonnet_usage;
+        // read it so an existing preference is not silently reset to off.
+        isScopedUsageShown = try container.decodeIfPresent(Bool.self, forKey: .isScopedUsageShown)
+            ?? legacyContainer.decodeIfPresent(Bool.self, forKey: .sonnetUsageShown)
+            ?? defaults.isScopedUsageShown
         iconStyle = try container.decodeIfPresent(IconStyle.self, forKey: .iconStyle) ?? defaults.iconStyle
         isColoredIcon = try container.decodeIfPresent(Bool.self, forKey: .isColoredIcon) ?? defaults.isColoredIcon
         areWeeklyDayMarkersShown = try container.decodeIfPresent(Bool.self, forKey: .areWeeklyDayMarkersShown) ?? defaults.areWeeklyDayMarkersShown

@@ -6,7 +6,7 @@ Keep track of your Claude.ai plan usage at a glance.
 
 ## Features
 
-- **Real-time usage monitoring** - Track your 5-hour session, 7-day weekly, and Sonnet-specific usage limits
+- **Real-time usage monitoring** - Track your 5-hour session, 7-day weekly, and Fable-specific usage limits
 - **Menu bar integration** - Clean, colour-coded usage indicator that lives in your macOS menu bar
 - **Multiple icon styles** - Choose from 6 icon styles: Battery, Circular, Minimal, Segments, Dual Bar, or Gauge
 - **Pacing indicator** - Flame icon warns when you're using Claude faster than sustainable pace
@@ -25,10 +25,10 @@ The menu bar icon changes colour based on your usage levels:
   <img src="docs/menubar-critical.png" width="260" alt="Menu bar - Critical threshold">
 </p>
 
-When using Sonnet models, an additional indicator shows your Sonnet-specific usage:
+When your plan meters a model separately, an additional indicator shows that usage (currently Fable):
 
 <p align="center">
-  <img src="docs/menubar-sonnet.png" width="300" alt="Menu bar - Sonnet usage">
+  <img src="docs/menubar-sonnet.png" width="300" alt="Menu bar - scoped model usage">
 </p>
 
 ### Notifications
@@ -134,7 +134,7 @@ ClaudeMeter exports usage data to `~/.claudemeter/usage.json` for use with exter
     "reset_at": "2025-12-24T12:00:00Z",
     "utilization": 29
   },
-  "sonnet_usage": {
+  "scoped_usage": {
     "reset_at": "2025-12-30T00:00:00Z",
     "utilization": 15
   },

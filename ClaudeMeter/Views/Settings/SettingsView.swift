@@ -61,7 +61,7 @@ struct SettingsView: View {
             } else {
                 sessionKeySection
                 refreshIntervalSection
-                sonnetUsageSection
+                scopedUsageSection
                 weeklyDayMarkersSection
                 iconStyleSection
                 launchAtLoginSection
@@ -211,21 +211,21 @@ struct SettingsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - Sonnet Usage Section
+    // MARK: - Scoped Model Usage Section
 
-    private var sonnetUsageSection: some View {
+    private var scopedUsageSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Show Sonnet Usage")
+                Text("Show \(Constants.ScopedModel.displayName) Usage")
                     .font(.subheadline)
-                Text("Display weekly Sonnet usage in the menu bar popover")
+                Text("Display weekly \(Constants.ScopedModel.displayName) usage in the menu bar popover")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            Toggle("", isOn: $appModel.settings.isSonnetUsageShown)
+            Toggle("", isOn: $appModel.settings.isScopedUsageShown)
                 .labelsHidden()
         }
         .padding()

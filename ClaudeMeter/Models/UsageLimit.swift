@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// A single usage limit (session, weekly, or Sonnet)
+/// A single usage limit (session, weekly, or the scoped model)
 struct UsageLimit: Codable, Equatable, Sendable {
     /// Utilization percentage (0-100)
     let utilization: Double
