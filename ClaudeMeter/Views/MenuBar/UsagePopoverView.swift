@@ -104,11 +104,11 @@ struct UsagePopoverView: View {
                             segmentCount: weeklySegmentCount
                         )
 
-                        // Sonnet usage card (conditional rendering)
-                        if appModel.settings.isSonnetUsageShown, let sonnetUsage = usageData.sonnetUsage {
+                        // Scoped-model usage card (conditional rendering)
+                        if isScopedCardShown, let scopedUsage = usageData.scopedUsage {
                             UsageCardView(
-                                title: "Weekly Sonnet",
-                                usageLimit: sonnetUsage,
+                                title: "Weekly \(Constants.ScopedModel.displayName)",
+                                usageLimit: scopedUsage,
                                 icon: "sparkles",
                                 windowDuration: Constants.Pacing.weeklyWindow,
                                 segmentCount: weeklySegmentCount
@@ -151,7 +151,7 @@ struct UsagePopoverView: View {
             }
             .padding()
         }
-        .frame(width: 320, height: 460)
+        .frame(width: 320, height: popoverHeight)
         .background(Color(nsColor: .windowBackgroundColor))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Usage Dashboard")
@@ -160,6 +160,16 @@ struct UsagePopoverView: View {
     /// Day segments for weekly bars, or `nil` when the user has turned the markers off
     private var weeklySegmentCount: Int? {
         appModel.settings.areWeeklyDayMarkersShown ? Constants.Pacing.weeklyDays : nil
+    }
+
+    private var isScopedCardShown: Bool {
+        appModel.settings.isScopedUsageShown && appModel.usageData?.scopedUsage != nil
+    }
+
+    /// Grows to fit the third card, which otherwise sits below the fold and has to be
+    /// scrolled to. Sized to the cards rather than left fixed, so neither layout scrolls.
+    private var popoverHeight: CGFloat {
+        isScopedCardShown ? 620 : 460
     }
 
     private func openSettingsFront() {

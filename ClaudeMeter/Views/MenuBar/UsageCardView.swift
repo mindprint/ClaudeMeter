@@ -55,7 +55,7 @@ struct UsageCardView: View {
 
             // Usage percentage
             Text("\(Int(usageLimit.percentage))%")
-                .font(.system(size: 36, weight: .bold, design: .rounded))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundColor(usageLimit.status.color)
 
             // Progress bar
