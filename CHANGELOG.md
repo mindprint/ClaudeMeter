@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename `sonnet_usage` to `scoped_usage` in the `~/.claudemeter/usage.json` export. **Breaking** for anything reading that key
 - Show the exact reset time alongside the relative one in usage cards, prefixed with the weekday when it falls on another day
 
+### Fixed
+
+- Accept usage reset timestamps without fractional seconds. The API sends these when a reset lands exactly on the second, and every refresh failed while the popover kept showing stale data, which could belong to a previously saved session key
+
 ## [1.4.0] - 2026-05-19
 
 ### Added

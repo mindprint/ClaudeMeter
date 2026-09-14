@@ -70,6 +70,26 @@ final class UsageAPIResponseTests: XCTestCase {
         XCTAssertNil(usage.scopedUsage)
     }
 
+    /// The API omits fractional seconds when a reset lands exactly on the second, as
+    /// the scoped limit does for accounts whose weekly window starts on the hour.
+    func test_resetDateWithoutFractionalSeconds_parses() throws {
+        let usage = try decode(
+            """
+            {
+              "five_hour": {"utilization": 2.0, "resets_at": "2026-09-14T13:00:00.067510+00:00"},
+              "seven_day": {"utilization": 2.0, "resets_at": "2026-09-20T08:00:00.067547+00:00"},
+              "limits": [
+                {"kind": "session", "percent": 2, "resets_at": "2026-09-14T13:00:00.067510+00:00"},
+                {"kind": "weekly_all", "percent": 2, "resets_at": "2026-09-20T08:00:00.067547+00:00"},
+                {"kind": "weekly_scoped", "percent": 0, "resets_at": "2026-09-20T08:00:00+00:00"}
+              ]
+            }
+            """
+        )
+
+        XCTAssertEqual(usage.scopedUsage?.resetAt, ISO8601DateFormatter().date(from: "2026-09-20T08:00:00Z"))
+    }
+
     /// `limits` wins where both are present, since the legacy fields are being retired.
     func test_limitsTakePrecedenceOverLegacyFields() throws {
         let usage = try decode(

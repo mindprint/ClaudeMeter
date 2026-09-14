@@ -150,7 +150,14 @@ extension UsageAPIResponse {
         guard let rawValue else {
             return Date().addingTimeInterval(fallback)
         }
-        guard let date = formatter.date(from: rawValue) else {
+        if let date = formatter.date(from: rawValue) {
+            return date
+        }
+
+        // The API drops fractional seconds when a reset lands exactly on the second.
+        let wholeSecondFormatter = ISO8601DateFormatter()
+        wholeSecondFormatter.formatOptions = [.withInternetDateTime]
+        guard let date = wholeSecondFormatter.date(from: rawValue) else {
             throw MappingError.missingCriticalField(field: field)
         }
         return date
