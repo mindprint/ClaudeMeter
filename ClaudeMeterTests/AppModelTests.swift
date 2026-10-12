@@ -215,7 +215,34 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(appModel.usageData, expectedUsage)
     }
 
-    func test_importingSessionKey_savesImportedKeyAndLoadsData() async throws {
+    func test_importSources_listsBrowserProfilesFromImportService() async {
+        let sources = [
+            SessionKeyImportSource(id: "safari", label: "Safari"),
+            SessionKeyImportSource(id: "chrome-work", label: "Chrome Work"),
+        ]
+        let importService = SessionKeyImportServiceStub(
+            sources: sources,
+            result: .failure(SessionKeyImportError.noSessionKeyFound("Safari"))
+        )
+
+        let appModel = AppModel(
+            settingsRepository: SettingsRepositoryFake(),
+            keychainRepository: KeychainRepositoryFake(),
+            usageService: UsageServiceStub(
+                fetchUsageResult: .failure(TestError(message: TestConstants.unexpectedErrorMessage)),
+                organizations: [],
+                isSessionKeyValid: false
+            ),
+            notificationService: NotificationServiceSpy(),
+            sessionKeyImportService: importService
+        )
+
+        let listed = await appModel.importSources()
+
+        XCTAssertEqual(listed, sources)
+    }
+
+    func test_importingSessionKey_savesKeyFromChosenSourceAndLoadsData() async throws {
         let expectedUsage = makeUsageData(percentage: TestConstants.sessionPercentage)
         let organization = Organization(
             id: 1,
@@ -230,6 +257,7 @@ final class AppModelTests: XCTestCase {
         let notificationService = NotificationServiceSpy()
         let settingsRepository = SettingsRepositoryFake()
         let keychainRepository = KeychainRepositoryFake()
+        let chosenSource = SessionKeyImportSource(id: "chrome-default", label: "Chrome Default")
         let importService = SessionKeyImportServiceStub(result: .success(ImportedSessionKey(
             value: TestConstants.sessionKeyValue,
             sourceDescription: "Chrome Default"
@@ -243,13 +271,50 @@ final class AppModelTests: XCTestCase {
             sessionKeyImportService: importService
         )
 
-        let imported = try await appModel.importAndSaveSessionKey()
+        let imported = try await appModel.importAndSaveSessionKey(from: chosenSource)
         let savedKey = try await keychainRepository.retrieve(account: "default")
+        let requestedSources = await importService.requestedSources
 
+        XCTAssertEqual(requestedSources, [chosenSource])
         XCTAssertEqual(imported.sourceDescription, "Chrome Default")
         XCTAssertEqual(savedKey, TestConstants.sessionKeyValue)
         XCTAssertTrue(appModel.isSetupComplete)
         XCTAssertEqual(appModel.usageData, expectedUsage)
+    }
+
+    func test_importingSessionKey_whenChosenSourceHasNoSession_keepsSavedKey() async throws {
+        let existingKey = "sk-ant-existing-session-key"
+        let keychainRepository = KeychainRepositoryFake()
+        try await keychainRepository.save(sessionKey: existingKey, account: "default")
+        let importService = SessionKeyImportServiceStub(
+            result: .failure(SessionKeyImportError.noSessionKeyFound("Chrome Work"))
+        )
+
+        let appModel = AppModel(
+            settingsRepository: SettingsRepositoryFake(),
+            keychainRepository: keychainRepository,
+            usageService: UsageServiceStub(
+                fetchUsageResult: .failure(TestError(message: TestConstants.unexpectedErrorMessage)),
+                organizations: [],
+                isSessionKeyValid: true
+            ),
+            notificationService: NotificationServiceSpy(),
+            sessionKeyImportService: importService
+        )
+
+        do {
+            _ = try await appModel.importAndSaveSessionKey(
+                from: SessionKeyImportSource(id: "chrome-work", label: "Chrome Work")
+            )
+            XCTFail("Expected noSessionKeyFound to be thrown")
+        } catch SessionKeyImportError.noSessionKeyFound(let label) {
+            XCTAssertEqual(label, "Chrome Work")
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        let savedKey = try await keychainRepository.retrieve(account: "default")
+        XCTAssertEqual(savedKey, existingKey)
     }
 
     func test_importingSessionKey_whenImportedKeyInvalid_staysInSetup() async throws {
@@ -275,7 +340,9 @@ final class AppModelTests: XCTestCase {
         )
 
         do {
-            _ = try await appModel.importAndSaveSessionKey()
+            _ = try await appModel.importAndSaveSessionKey(
+                from: SessionKeyImportSource(id: "chrome-default", label: "Chrome Default")
+            )
             XCTFail("Expected invalidImportedSessionKey to be thrown")
         } catch SessionKeyImportError.invalidImportedSessionKey {
             XCTAssertFalse(appModel.isSetupComplete)

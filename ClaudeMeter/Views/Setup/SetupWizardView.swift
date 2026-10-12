@@ -7,6 +7,7 @@ struct SetupWizardView: View {
     @State private var sessionKeyInput: String = ""
     @State private var isValidating: Bool = false
     @State private var isImporting: Bool = false
+    @State private var importSources: [SessionKeyImportSource] = []
     @State private var errorMessage: String?
     @State private var offersFullDiskAccessSettings: Bool = false
     @State private var hasValidationSucceeded: Bool = false
@@ -112,11 +113,19 @@ struct SetupWizardView: View {
 
             // Actions
             VStack(spacing: 8) {
-                Button(action: {
-                    Task {
-                        await importAndSave()
+                Menu {
+                    if importSources.isEmpty {
+                        Text("No browsers found")
+                    } else {
+                        ForEach(importSources) { source in
+                            Button(source.label) {
+                                Task {
+                                    await importAndSave(from: source)
+                                }
+                            }
+                        }
                     }
-                }) {
+                } label: {
                     HStack {
                         if isImporting {
                             ProgressView()
@@ -127,10 +136,11 @@ struct SetupWizardView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                 }
+                .menuStyle(.button)
                 .buttonStyle(.borderedProminent)
                 .disabled(isBusy)
                 .accessibilityLabel(isImporting ? "Importing session key" : "Import session key from browser")
-                .accessibilityHint("Finds your Claude session key in local browser cookies and validates it")
+                .accessibilityHint("Choose a browser profile to import your Claude session key from and validate it")
 
                 Button(action: {
                     Task {
@@ -153,6 +163,9 @@ struct SetupWizardView: View {
         }
         .frame(width: 370, height: 460)
         .background(Color(nsColor: .windowBackgroundColor))
+        .task {
+            importSources = await appModel.importSources()
+        }
     }
     // MARK: - Validation
 
@@ -167,14 +180,14 @@ struct SetupWizardView: View {
     }
 
     @MainActor
-    private func importAndSave() async {
+    private func importAndSave(from source: SessionKeyImportSource) async {
         isImporting = true
         errorMessage = nil
         offersFullDiskAccessSettings = false
         hasValidationSucceeded = false
 
         do {
-            let imported = try await appModel.importAndSaveSessionKey()
+            let imported = try await appModel.importAndSaveSessionKey(from: source)
             sessionKeyInput = imported.value
             hasValidationSucceeded = true
         } catch let error as SessionKeyImportError {

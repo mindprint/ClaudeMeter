@@ -6,6 +6,10 @@ Upstream's history lives in `CHANGELOG.md`. This file records only what the fork
 
 ## [Unreleased]
 
+### Changed
+
+- Turn "Import from Browser" in Settings and the setup wizard into a dropdown of the browser profiles found on this Mac, Safari first, and import only from the chosen profile. Previously the import took the first browser with a claude.ai cookie, which could silently pick another account
+
 ### Fixed
 
 - Accept usage reset timestamps without fractional seconds. The API sends these when a reset lands exactly on the second, and every refresh failed while the popover kept showing stale data, which could belong to a previously saved session key. Found when a Safari session key still showed the usage of an older Chrome session (`78a2fa4`)

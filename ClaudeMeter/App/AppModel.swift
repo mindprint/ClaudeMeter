@@ -155,8 +155,12 @@ final class AppModel {
         return true
     }
 
-    func importAndSaveSessionKey() async throws -> ImportedSessionKey {
-        let imported = try await sessionKeyImportService.importSessionKey()
+    func importSources() async -> [SessionKeyImportSource] {
+        await sessionKeyImportService.availableSources()
+    }
+
+    func importAndSaveSessionKey(from source: SessionKeyImportSource) async throws -> ImportedSessionKey {
+        let imported = try await sessionKeyImportService.importSessionKey(from: source)
         let isValid = try await validateAndSaveSessionKey(imported.value)
 
         guard isValid else {

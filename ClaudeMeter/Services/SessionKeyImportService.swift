@@ -17,60 +17,59 @@ actor SessionKeyImportService: SessionKeyImportServiceProtocol {
         self.browserImportOrder = browserImportOrder
     }
 
-    func importSessionKey() async throws -> ImportedSessionKey {
-        let query = BrowserCookieQuery(domains: ["claude.ai"], domainMatch: .suffix)
-        var sawAccessDenied = false
-        var sawSafariAccessDenied = false
-        var deniedKeychainBrowserName: String?
+    func availableSources() async -> [SessionKeyImportSource] {
+        cookieStores().map { store in
+            SessionKeyImportSource(id: Self.sourceID(for: store), label: store.label)
+        }
+    }
 
-        for browser in browserImportOrder {
-            do {
-                let sources = try cookieClient.records(matching: query, in: browser)
-                for source in sources {
-                    if let imported = try importedSessionKey(from: source) {
-                        return imported
-                    }
+    func importSessionKey(from source: SessionKeyImportSource) async throws -> ImportedSessionKey {
+        // Stores are looked up again rather than cached, so a profile removed since the
+        // menu was built reports "not found" instead of reading a stale path.
+        guard let store = cookieStores().first(where: { Self.sourceID(for: $0) == source.id }) else {
+            throw SessionKeyImportError.noSessionKeyFound(source.label)
+        }
+
+        let query = BrowserCookieQuery(domains: ["claude.ai"], domainMatch: .suffix)
+        let records: [BrowserCookieRecord]
+        do {
+            records = try cookieClient.records(matching: query, in: store)
+        } catch let error as BrowserCookieError {
+            Self.logger.debug("Browser cookie import failed for \(store.label): \(error.localizedDescription)")
+            switch error {
+            case .accessDenied:
+                if store.browser == .safari {
+                    throw SessionKeyImportError.safariAccessDenied
                 }
-            } catch let error as BrowserCookieError {
-                switch error {
-                case .accessDenied:
-                    sawAccessDenied = true
-                    if browser == .safari {
-                        sawSafariAccessDenied = true
-                    } else if browser.usesKeychainForCookieDecryption {
-                        deniedKeychainBrowserName = browser.displayName
-                    }
-                case .notFound, .loadFailed:
-                    break
+                if store.browser.usesKeychainForCookieDecryption {
+                    throw SessionKeyImportError.browserKeychainAccessDenied(store.browser.displayName)
                 }
-                Self.logger.debug("Browser cookie import failed for \(browser.displayName): \(error.localizedDescription)")
-            } catch {
-                Self.logger.debug("Browser cookie import failed for \(browser.displayName): \(error.localizedDescription)")
+                throw SessionKeyImportError.accessDenied
+            case .notFound, .loadFailed:
+                throw SessionKeyImportError.noSessionKeyFound(source.label)
             }
         }
 
-        if let deniedKeychainBrowserName {
-            throw SessionKeyImportError.browserKeychainAccessDenied(deniedKeychainBrowserName)
-        }
-        if sawSafariAccessDenied {
-            throw SessionKeyImportError.safariAccessDenied
-        }
-        if sawAccessDenied {
-            throw SessionKeyImportError.accessDenied
-        }
-        throw SessionKeyImportError.noSessionKeyFound
-    }
-
-    private func importedSessionKey(from source: BrowserCookieStoreRecords) throws -> ImportedSessionKey? {
-        guard let cookie = source.records.first(where: { $0.name == "sessionKey" }) else {
-            return nil
+        guard let cookie = records.first(where: { $0.name == "sessionKey" }) else {
+            throw SessionKeyImportError.noSessionKeyFound(source.label)
         }
 
         let sessionKey = try SessionKey(cookie.value)
         return ImportedSessionKey(
             value: sessionKey.value,
-            sourceDescription: source.label
+            sourceDescription: store.label
         )
+    }
+
+    /// Cookie stores for every browser profile on disk, Safari first.
+    private func cookieStores() -> [BrowserCookieStore] {
+        let browsers = browserImportOrder.filter { $0 == .safari }
+            + browserImportOrder.filter { $0 != .safari }
+        return cookieClient.stores(in: browsers)
+    }
+
+    private static func sourceID(for store: BrowserCookieStore) -> String {
+        [store.browser.rawValue, store.profile.id, store.databaseURL?.path ?? ""].joined(separator: "|")
     }
 }
 

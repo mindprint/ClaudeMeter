@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var isSessionKeyShown: Bool = false
     @State private var isValidatingSessionKey: Bool = false
     @State private var isImportingSessionKey: Bool = false
+    @State private var importSources: [SessionKeyImportSource] = []
     @State private var sessionKeyValidationMessage: String?
     @State private var offersFullDiskAccessSettings: Bool = false
     @State private var hasSessionKeyValidationSucceeded: Bool = false
@@ -129,13 +130,23 @@ struct SettingsView: View {
                 .controlSize(.small)
                 .disabled(sessionKey.isEmpty || isSessionKeyBusy)
 
-                Button("Import from Browser") {
-                    Task {
-                        await importAndSaveSessionKey()
+                Menu("Import from Browser") {
+                    if importSources.isEmpty {
+                        Text("No browsers found")
+                    } else {
+                        ForEach(importSources) { source in
+                            Button(source.label) {
+                                Task {
+                                    await importAndSaveSessionKey(from: source)
+                                }
+                            }
+                        }
                     }
                 }
                 .controlSize(.small)
+                .fixedSize()
                 .disabled(isSessionKeyBusy)
+                .help("Choose the browser profile to import your Claude session from")
 
                 if isSessionKeyBusy {
                     ProgressView()
@@ -575,6 +586,7 @@ struct SettingsView: View {
     private func loadSettings() {
         Task { @MainActor in
             sessionKey = await appModel.loadSessionKey() ?? ""
+            importSources = await appModel.importSources()
             await updateNotificationStatus()
         }
     }
@@ -635,14 +647,14 @@ struct SettingsView: View {
     }
 
     @MainActor
-    private func importAndSaveSessionKey() async {
+    private func importAndSaveSessionKey(from source: SessionKeyImportSource) async {
         isImportingSessionKey = true
         sessionKeyValidationMessage = nil
         offersFullDiskAccessSettings = false
         hasSessionKeyValidationSucceeded = false
 
         do {
-            let imported = try await appModel.importAndSaveSessionKey()
+            let imported = try await appModel.importAndSaveSessionKey(from: source)
             sessionKey = imported.value
             sessionKeyValidationMessage = "Imported from \(imported.sourceDescription)"
             hasSessionKeyValidationSucceeded = true

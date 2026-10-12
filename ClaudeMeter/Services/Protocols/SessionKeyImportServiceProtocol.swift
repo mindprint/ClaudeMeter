@@ -6,9 +6,15 @@ struct ImportedSessionKey: Equatable, Sendable {
     let sourceDescription: String
 }
 
+/// A browser profile the user can import a Claude session key from.
+struct SessionKeyImportSource: Identifiable, Hashable, Sendable {
+    let id: String
+    let label: String
+}
+
 /// Errors that can occur while importing a session key from browser cookies.
 enum SessionKeyImportError: LocalizedError {
-    case noSessionKeyFound
+    case noSessionKeyFound(String)
     case accessDenied
     case safariAccessDenied
     case browserKeychainAccessDenied(String)
@@ -16,8 +22,8 @@ enum SessionKeyImportError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noSessionKeyFound:
-            return "No Claude browser session found. Sign in to claude.ai and try again."
+        case .noSessionKeyFound(let sourceLabel):
+            return "No Claude session found in \(sourceLabel). Sign in to claude.ai there and try again."
         case .accessDenied:
             return "ClaudeMeter could not access browser cookies. Allow the macOS prompt or paste your session."
         case .safariAccessDenied:
@@ -39,5 +45,8 @@ enum SessionKeyImportError: LocalizedError {
 
 /// Protocol for importing Claude session keys from local browser data.
 protocol SessionKeyImportServiceProtocol: Actor {
-    func importSessionKey() async throws -> ImportedSessionKey
+    /// Browser profiles found on this Mac, found without reading any cookies.
+    func availableSources() async -> [SessionKeyImportSource]
+
+    func importSessionKey(from source: SessionKeyImportSource) async throws -> ImportedSessionKey
 }

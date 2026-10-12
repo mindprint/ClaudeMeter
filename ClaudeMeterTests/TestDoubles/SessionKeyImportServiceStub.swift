@@ -2,13 +2,21 @@ import Foundation
 @testable import ClaudeMeter
 
 actor SessionKeyImportServiceStub: SessionKeyImportServiceProtocol {
+    let sources: [SessionKeyImportSource]
     let result: Result<ImportedSessionKey, Error>
+    private(set) var requestedSources: [SessionKeyImportSource] = []
 
-    init(result: Result<ImportedSessionKey, Error>) {
+    init(sources: [SessionKeyImportSource] = [], result: Result<ImportedSessionKey, Error>) {
+        self.sources = sources
         self.result = result
     }
 
-    func importSessionKey() async throws -> ImportedSessionKey {
+    func availableSources() async -> [SessionKeyImportSource] {
+        sources
+    }
+
+    func importSessionKey(from source: SessionKeyImportSource) async throws -> ImportedSessionKey {
+        requestedSources.append(source)
         switch result {
         case .success(let imported):
             return imported
