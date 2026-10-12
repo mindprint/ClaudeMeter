@@ -8,7 +8,7 @@ Upstream's history lives in `CHANGELOG.md`. This file records only what the fork
 
 ### Changed
 
-- Turn "Import from Browser" in Settings and the setup wizard into a dropdown of the browser profiles found on this Mac, Safari first, and import only from the chosen profile. Previously the import took the first browser with a claude.ai cookie, which could silently pick another account
+- Turn "Import from Browser" in Settings and the setup wizard into a dropdown of the browser profiles found on this Mac, Safari first, and import only from the chosen profile. Previously the import took the first browser with a claude.ai cookie, which could silently pick another account (`6182565`)
 
 ### Fixed
 
