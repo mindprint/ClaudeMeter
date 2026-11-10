@@ -3,6 +3,16 @@ import XCTest
 
 @MainActor
 final class AppModelTests: XCTestCase {
+    /// The test host launches the real app, which must not reach the real Keychain.
+    func test_appHostingTests_doesNotStartMenuBar() {
+        let appDelegate = AppDelegate()
+
+        appDelegate.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
+
+        XCTAssertTrue(AppDelegate.isHostingTests)
+        XCTAssertNil(appDelegate.menuBarManager)
+    }
+
     func test_bootstrap_withoutSessionKey_showsSetupState() async {
         let usageService = UsageServiceStub(fetchUsageResult: .failure(TestError(message: TestConstants.unexpectedErrorMessage)))
         let notificationService = NotificationServiceSpy()

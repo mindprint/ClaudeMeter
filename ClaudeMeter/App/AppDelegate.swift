@@ -4,10 +4,17 @@ import AppKit
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var appModel: AppModel?
-    private var menuBarManager: MenuBarManager?
+    private(set) var menuBarManager: MenuBarManager?
 
     #if DEBUG
     private var isDemoMode: Bool = false
+
+    /// True when this process only hosts the unit tests. Each parallel test process
+    /// launches the app, so starting up here would read the real Keychain from an
+    /// unsigned build and raise a password prompt per process.
+    static var isHostingTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
     #endif
 
     func configure(appModel: AppModel) {
@@ -21,6 +28,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        guard !Self.isHostingTests else { return }
+        #endif
+
         SessionKeyImportPromptCoordinator.install()
 
         guard let appModel else {
